@@ -766,10 +766,10 @@
 
       async function init(params) {
         try {
-          const baselineJson = await fetch('/baseline.json').then((res) =>
+          const baselineJson = await fetch('expressjs-benchmark-dashboard/baseline.json').then((res) =>
             res.text()
           );
-          const currentJson = await fetch('/current.json').then((res) => res.text());
+          const currentJson = await fetch('expressjs-benchmark-dashboard/current.json').then((res) => res.text());
 
           const baseline = JSON.parse(baselineJson);
           const current = JSON.parse(currentJson);
