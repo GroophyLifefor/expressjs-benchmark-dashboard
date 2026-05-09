@@ -1,788 +1,770 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Benchmark Dashboard</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-          Helvetica, Arial, sans-serif;
-        margin: 0;
-        padding: 20px;
-        background: #f4f4f9;
-        color: #333;
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Express benchmark compare</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e11;
+    --bg2: #16161a;
+    --bg3: #1e1e24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e8f0;
+    --text2: #888899;
+    --text3: #555566;
+    --accent: #7c6dfa;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --teal: #22d3ee;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  header span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  main { padding: 32px; max-width: 1100px; margin: 0 auto; flex: 1 }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: 12px;
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,109,250,0.05);
+  }
+  .drop-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .drop-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    color: var(--text3);
+  }
+  .drop-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  .drop-hint { font-size: 12px; color: var(--text3); }
+
+  .file-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+  }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pill-name { color: var(--text); }
+  .pill-override { color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill-remove {
+    cursor: pointer;
+    color: var(--text3);
+    background: none;
+    border: none;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 0 0 4px;
+    transition: color 0.15s;
+  }
+  .pill-remove:hover { color: var(--red); }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+  .metric-rows { display: flex; flex-direction: column; gap: 6px; }
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .metric-run {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .metric-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .metric-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .badge-best {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+    border: 1px solid rgba(52,211,153,0.25);
+    white-space: nowrap;
+  }
+  .badge-base {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(124,109,250,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(124,109,250,0.3);
+    white-space: nowrap;
+  }
+  .pill-setbase {
+    cursor: pointer;
+    color: var(--text3);
+    background: none;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .pill-setbase:hover { color: var(--accent2); border-color: rgba(124,109,250,0.4); }
+  .delta-pos { font-family: var(--mono); font-size: 10px; color: var(--green); white-space: nowrap; }
+  .delta-neg { font-family: var(--mono); font-size: 10px; color: var(--red); white-space: nowrap; }
+  .delta-neu { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .chart-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 180px;
+  }
+  .metric-card-chart {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .latency-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 40px;
+  }
+  .percentile-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .legend-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin-bottom: 40px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td.val { color: var(--text); }
+  td.best { color: var(--green); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 0;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .footer-sep {
+    width: 1px;
+    height: 12px;
+    background: var(--border2);
+  }
+  .footer-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+  .footer-text strong { color: var(--text2); font-weight: 500; }
+  footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  footer a:hover { color: var(--accent2); }
+  footer a svg { flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>bench-compare</h1>
+  <span>@expressjs/perf</span>
+</header>
+
+<main>
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".json" multiple>
+    <div class="drop-icon">&#8659;</div>
+    <div class="drop-title">Drop JSON benchmark files here</div>
+    <div class="drop-hint">or click to browse — select multiple files at once</div>
+  </div>
+
+  <div class="file-pills" id="filePills"></div>
+
+  <div id="dashboard">
+    <div class="empty-state" id="emptyState">Load at least one benchmark JSON to see results</div>
+  </div>
+</main>
+
+<footer>
+  <span class="footer-text">Open-Source Project by <a href="https://github.com/GroophyLifefor" target="_blank" rel="noopener">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    Murat Kirazkaya
+  </a> for Express.js Perf WG</span>
+  <span class="footer-sep"></span>
+  <a href="https://github.com/GroophyLifefor/expressjs-benchmark-dashboard" target="_blank" rel="noopener">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    expressjs-benchmark-dashboard
+  </a>
+  
+</footer>
+
+<script>
+const PALETTE = ['#7c6dfa','#34d399','#fbbf24','#22d3ee','#f87171','#a78bfa','#6ee7b7','#fde68a'];
+const CHART_GRID = 'rgba(255,255,255,0.05)';
+const TICK_COLOR = '#555566';
+
+let runs = [];
+let charts = [];
+let baseIdx = 0;
+
+function colorFor(i) { return PALETTE[i % PALETTE.length]; }
+
+function labelFor(run) {
+  return run._filename || 'run';
+}
+
+function cr(run) { return run.clientResults?.[0] || {}; }
+
+function fmtNum(n, decimals = 0) {
+  if (n === undefined || n === null || isNaN(n)) return '—';
+  return decimals > 0 ? n.toFixed(decimals) : Math.round(n).toLocaleString();
+}
+
+function fmtBytes(n) {
+  if (!n) return '—';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB/s';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + ' KB/s';
+  return Math.round(n) + ' B/s';
+}
+
+function bestIdx(vals, lowerBetter = false) {
+  if (vals.length < 2) return -1;
+  let best = 0;
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i] === undefined) continue;
+    if (lowerBetter ? vals[i] < vals[best] : vals[i] > vals[best]) best = i;
+  }
+  return best;
+}
+
+function destroyCharts() {
+  charts.forEach(c => c.destroy());
+  charts = [];
+}
+
+function mkChart(id, type, data, opts = {}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const c = new Chart(el, { type, data, options: { responsive: true, maintainAspectRatio: false, ...opts } });
+  charts.push(c);
+}
+
+function commonChartOpts(yFmt) {
+  return {
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: '#1e1e24',
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1,
+      titleColor: '#888899',
+      bodyColor: '#e8e8f0',
+      titleFont: { family: "'IBM Plex Mono'" },
+      bodyFont: { family: "'IBM Plex Mono'", size: 12 },
+      padding: 10
+    }},
+    scales: {
+      x: { ticks: { color: TICK_COLOR, font: { family: "'IBM Plex Mono'", size: 10 }, maxRotation: 20 }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.08)' } },
+      y: { ticks: { color: TICK_COLOR, font: { family: "'IBM Plex Mono'", size: 10 }, callback: yFmt }, grid: { color: CHART_GRID }, border: { display: false } }
+    }
+  };
+}
+
+function render() {
+  destroyCharts();
+  const dash = document.getElementById('dashboard');
+  const empty = document.getElementById('emptyState');
+
+  if (runs.length === 0) {
+    dash.innerHTML = '<div class="empty-state" id="emptyState">Load at least one benchmark JSON to see results</div>';
+    return;
+  }
+
+  empty && (empty.style.display = 'none');
+
+  const labels = runs.map(labelFor);
+  const colors = runs.map((_, i) => colorFor(i));
+
+  const reqAvg = runs.map(r => cr(r).requests?.average);
+  const latAvg = runs.map(r => cr(r).latency?.average);
+  const latStd = runs.map(r => cr(r).latency?.stddev);
+  const tputAvg = runs.map(r => cr(r).throughput?.average);
+  const lat99 = runs.map(r => cr(r).latency?.p99);
+  const lat999 = runs.map(r => cr(r).latency?.p99_9);
+  const bestReq = bestIdx(reqAvg);
+  const bestLat = bestIdx(latAvg, true);
+  const bestStd = bestIdx(latStd, true);
+  const bestTput = bestIdx(tputAvg);
+
+  function metricRows(vals, fmt, lowerBetter = false) {
+    const best = bestIdx(vals, lowerBetter);
+    const baseVal = vals[baseIdx];
+    return runs.map((r, i) => {
+      const v = vals[i];
+      const isBest = i === best && runs.length > 1;
+      let deltaHtml = '';
+      if (i !== baseIdx && baseVal != null && v != null && baseVal !== 0) {
+        const pct = (v - baseVal) / baseVal * 100;
+        const improved = lowerBetter ? pct < 0 : pct > 0;
+        const cls = Math.abs(pct) < 0.05 ? 'delta-neu' : (improved ? 'delta-pos' : 'delta-neg');
+        deltaHtml = `<span class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</span>`;
       }
-      h1 {
-        margin-bottom: 20px;
-      }
-
-      .section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-
-      th,
-      td {
-        text-align: left;
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-      }
-
-      th {
-        font-weight: 600;
-        color: #666;
-      }
-
-      .diff-pos {
-        color: #2da44e;
-        font-weight: bold;
-      }
-
-      .diff-neg {
-        color: #cf222e;
-        font-weight: bold;
-      }
-
-      .metric-value {
-        font-family: monospace;
-      }
-
-      .meta-table td {
-        padding: 4px 8px;
-        border: none;
-      }
-
-      .meta-table tr:nth-child(odd) {
-        background-color: #f8f9fa;
-      }
-
-      .metadata-status {
-        padding: 10px 15px;
-        border-radius: 6px;
-        margin-bottom: 15px;
-        font-weight: 600;
-      }
-
-      .metadata-same {
-        background-color: #d1f4e0;
-        color: #0d6832;
-        border: 1px solid #9dd9b8;
-      }
-
-      .metadata-different {
-        background-color: #ffe8cc;
-        color: #a65e00;
-        border: 1px solid #ffc266;
-      }
-
-      .comparison-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-
-      .comparison-table th,
-      .comparison-table td {
-        text-align: left;
-        padding: 8px 12px;
-        border-bottom: 1px solid #eee;
-      }
-
-      .comparison-table th {
-        font-weight: 600;
-        color: #666;
-        background-color: #f8f9fa;
-      }
-
-      .row-different {
-        background-color: #fff5e6;
-      }
-
-      .value-cell {
-        font-family: monospace;
-        font-size: 0.9em;
-      }
-
-      .status-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.85em;
-        font-weight: 600;
-        white-space: nowrap;
-      }
-
-      .badge-same {
-        background-color: #e9ecef;
-        color: #495057;
-      }
-
-      .badge-different {
-        background-color: #ffd1b3;
-        color: #a65e00;
-      }
-
-      .badge-improved {
-        background-color: #d1f4e0;
-        color: #0d6832;
-      }
-
-      .badge-regressed {
-        background-color: #ffd1d1;
-        color: #c92a2a;
-      }
-
-      .row-improved {
-        background-color: #f0f9f4;
-      }
-
-      .row-regressed {
-        background-color: #fff0f0;
-      }
-
-      #baseline-flamegraph > svg,
-      #current-flamegraph > svg {
-        width: 100%;
-        height: auto;
-      }
-
-      /* Mobile responsive styles */
-      @media (max-width: 768px) {
-        body {
-          padding: 10px;
-        }
-
-        h1 {
-          font-size: 1.5rem;
-        }
-
-        h2 {
-          font-size: 1.25rem;
-        }
-
-        h3 {
-          font-size: 1.1rem;
-        }
-
-        .section {
-          padding: 15px;
-        }
-
-        .grid {
-          grid-template-columns: 1fr;
-          gap: 15px;
-        }
-
-        table {
-          font-size: 0.85rem;
-        }
-
-        th,
-        td {
-          padding: 8px 4px;
-        }
-
-        .value-cell {
-          font-size: 0.8em;
-        }
-
-        .status-badge {
-          font-size: 0.75em;
-          padding: 2px 6px;
-        }
-
-        .comparison-table {
-          display: block;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-      }
-
-      @media (max-width: 480px) {
-        body {
-          padding: 5px;
-        }
-
-        h1 {
-          font-size: 1.25rem;
-        }
-
-        .section {
-          padding: 10px;
-          margin-bottom: 15px;
-        }
-
-        table {
-          font-size: 0.75rem;
-        }
-
-        th,
-        td {
-          padding: 6px 2px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Benchmark Dashboard</h1>
-
-    <div class="section">
-      <h2>Metadata</h2>
-      <div id="metadata-comparison"></div>
-    </div>
-
-    <div class="section">
-      <h2>Results</h2>
-      <div id="results-comparison"></div>
-    </div>
-
-    <div class="section flamegraph-section">
-      <h2>Flamegraphs</h2>
-      <div class="grid">
-        <div>
-          <h3>Baseline</h3>
-          <div
-            id="baseline-flamegraph"
-            style="border: 1px solid #ddd; min-height: 400px; overflow: auto"
-          ></div>
+      return `<div class="metric-row">
+        <div class="metric-run"><span class="metric-dot" style="background:${colors[i]}"></span>${labels[i]}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="metric-val">${fmt(v)}</span>
+          ${deltaHtml}
+          ${isBest ? '<span class="badge-best">better</span>' : ''}
         </div>
-        <div>
-          <h3>Current</h3>
-          <div
-            id="current-flamegraph"
-            style="border: 1px solid #ddd; min-height: 400px; overflow: auto"
-          ></div>
-        </div>
+      </div>`;
+    }).join('');
+  }
+
+  dash.innerHTML = `
+    <div class="section-label">summary</div>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-label">avg req/s</div>
+        <div class="metric-rows">${metricRows(reqAvg, v => fmtNum(v))}</div>
+        <div class="metric-card-chart"><canvas id="cReq" role="img" aria-label="Average requests per second by run"></canvas></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">avg latency</div>
+        <div class="metric-rows">${metricRows(latAvg, v => fmtNum(v, 2) + ' ms', true)}</div>
+        <div class="metric-card-chart"><canvas id="cLat" role="img" aria-label="Average latency in ms by run"></canvas></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">latency stddev</div>
+        <div class="metric-rows">${metricRows(latStd, v => fmtNum(v, 2) + ' ms', true)}</div>
+        <div class="metric-card-chart"><canvas id="cStd" role="img" aria-label="Latency standard deviation by run"></canvas></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">throughput</div>
+        <div class="metric-rows">${metricRows(tputAvg, fmtBytes)}</div>
+        <div class="metric-card-chart"><canvas id="cTput" role="img" aria-label="Average throughput by run"></canvas></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">p99 latency</div>
+        <div class="metric-rows">${metricRows(lat99, v => fmtNum(v, 0) + ' ms', true)}</div>
+        <div class="metric-card-chart"><canvas id="cP99" role="img" aria-label="p99 latency by run"></canvas></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">p99.9 latency</div>
+        <div class="metric-rows">${metricRows(lat999, v => fmtNum(v, 0) + ' ms', true)}</div>
+        <div class="metric-card-chart"><canvas id="cP999" role="img" aria-label="p99.9 latency by run"></canvas></div>
       </div>
     </div>
 
-    <script>
-      function formatMetadataValue(value) {
-        if (value === null || value === undefined) return 'N/A';
-        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-        if (typeof value === 'number') return value.toLocaleString();
-        if (typeof value === 'string') return value;
-        if (Array.isArray(value)) {
-          return `Array (${value.length} items)`;
-        }
-        if (typeof value === 'object') {
-          return `Object (${Object.keys(value).length} properties)`;
-        }
-        return String(value);
+    <div class="latency-card">
+      <div class="chart-title">latency percentiles (ms)</div>
+      <div class="percentile-wrap"><canvas id="cPerc" role="img" aria-label="Latency percentile distribution by run"></canvas></div>
+      <div class="legend" id="percLegend"></div>
+    </div>
+
+    <div class="section-label">full stats</div>
+    <div class="table-wrap">${buildTable(labels, colors)}</div>
+  `;
+
+  const barDs = (vals, label) => ({
+    label,
+    data: vals,
+    backgroundColor: colors,
+    borderColor: colors.map(c => c + 'aa'),
+    borderWidth: 1,
+    borderRadius: 4
+  });
+
+  mkChart('cReq', 'bar',
+    { labels, datasets: [barDs(reqAvg, 'req/s')] },
+    commonChartOpts(v => Math.round(v).toLocaleString())
+  );
+  mkChart('cLat', 'bar',
+    { labels, datasets: [barDs(latAvg, 'ms')] },
+    commonChartOpts(v => v.toFixed(2))
+  );
+  mkChart('cTput', 'bar',
+    { labels, datasets: [barDs(tputAvg.map(v => v ? +(v / 1e6).toFixed(3) : 0), 'MB/s')] },
+    commonChartOpts(v => v.toFixed(2) + ' MB/s')
+  );
+  mkChart('cStd', 'bar',
+    { labels, datasets: [barDs(latStd, 'ms')] },
+    commonChartOpts(v => v.toFixed(2))
+  );
+  mkChart('cP99', 'bar',
+    { labels, datasets: [barDs(lat99, 'ms')] },
+    commonChartOpts(v => Math.round(v) + ' ms')
+  );
+  mkChart('cP999', 'bar',
+    { labels, datasets: [barDs(lat999, 'ms')] },
+    commonChartOpts(v => Math.round(v) + ' ms')
+  );
+
+  const percKeys = ['p1','p2_5','p10','p25','p50','p75','p90','p97_5','p99','p99_9','p99_99'];
+  const percLabels = ['p1','p2.5','p10','p25','p50','p75','p90','p97.5','p99','p99.9','p99.99'];
+  const percDs = runs.map((r, i) => ({
+    label: labels[i],
+    data: percKeys.map(k => cr(r).latency?.[k] ?? null),
+    borderColor: colors[i],
+    backgroundColor: colors[i] + '22',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    fill: false,
+    tension: 0.3
+  }));
+  mkChart('cPerc', 'line',
+    { labels: percLabels, datasets: percDs },
+    { ...commonChartOpts(v => v + ' ms'), plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1e1e24', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+        titleColor: '#888899', bodyColor: '#e8e8f0',
+        titleFont: { family: "'IBM Plex Mono'" }, bodyFont: { family: "'IBM Plex Mono'", size: 12 }, padding: 10
+      }}}
+  );
+
+  const legendEl = document.getElementById('percLegend');
+  if (legendEl) {
+    legendEl.innerHTML = runs.map((r, i) =>
+      `<span class="legend-item"><span class="legend-sq" style="background:${colors[i]}"></span>${labels[i]}</span>`
+    ).join('');
+  }
+
+}
+
+function buildTable(labels, colors) {
+  const cols = [
+    { key: r => cr(r).requests?.average, label: 'avg req/s', fmt: v => fmtNum(v), lowerBetter: false },
+    { key: r => cr(r).requests?.min, label: 'min req/s', fmt: v => fmtNum(v), lowerBetter: false },
+    { key: r => cr(r).requests?.max, label: 'max req/s', fmt: v => fmtNum(v), lowerBetter: false },
+    { key: r => cr(r).requests?.stddev, label: 'req stddev', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).latency?.average, label: 'avg lat ms', fmt: v => fmtNum(v, 2), lowerBetter: true },
+    { key: r => cr(r).latency?.stddev, label: 'lat stddev', fmt: v => fmtNum(v, 2), lowerBetter: true },
+    { key: r => cr(r).latency?.p50, label: 'p50 ms', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).latency?.p99, label: 'p99 ms', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).latency?.p99_9, label: 'p99.9 ms', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).latency?.max, label: 'max lat ms', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).throughput?.average, label: 'throughput', fmt: fmtBytes, lowerBetter: false },
+    { key: r => cr(r).errors, label: 'errors', fmt: v => fmtNum(v), lowerBetter: true },
+    { key: r => cr(r).duration, label: 'duration s', fmt: v => fmtNum(v, 1), lowerBetter: false },
+    { key: r => cr(r)['2xx'], label: '2xx total', fmt: v => fmtNum(v), lowerBetter: false },
+  ];
+
+  const rows = cols.map(col => {
+    const vals = runs.map(col.key);
+    const best = bestIdx(vals, col.lowerBetter);
+    const baseVal = vals[baseIdx];
+    const cells = runs.map((r, i) => {
+      const v = vals[i];
+      const isBest = i === best && runs.length > 1;
+      let deltaStr = '';
+      if (i !== baseIdx && baseVal != null && v != null && baseVal !== 0) {
+        const pct = (v - baseVal) / baseVal * 100;
+        const improved = col.lowerBetter ? pct < 0 : pct > 0;
+        const cls = Math.abs(pct) < 0.05 ? 'delta-neu' : (improved ? 'delta-pos' : 'delta-neg');
+        deltaStr = ` <span class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</span>`;
       }
-
-      function valuesEqual(val1, val2) {
-        return JSON.stringify(val1) === JSON.stringify(val2);
-      }
-
-      // Determine if a metric change is good or bad
-      // Returns: 'improved', 'regressed', or 'same'
-      function evaluateChange(metricName, baseVal, currVal, parentKey = '') {
-        if (typeof baseVal !== 'number' || typeof currVal !== 'number') {
-          return valuesEqual(baseVal, currVal) ? 'same' : 'neutral';
-        }
-
-        if (baseVal === currVal) return 'same';
-
-        // Metrics where LOWER is better
-        const lowerIsBetter = [
-          'errors',
-          'timeouts',
-          'mismatches',
-          'non2xx',
-          'resets',
-          '4xx',
-          '5xx',
-          'stddev',
-        ];
-
-        // For latency-related metrics, lower is always better (except totalCount)
-        const isLatencyMetric =
-          (parentKey.toLowerCase() === 'latency' ||
-            metricName.toLowerCase().includes('latency')) &&
-          metricName.toLowerCase() !== 'totalcount';
-
-        // Metrics where HIGHER is better
-        const higherIsBetter = [
-          '1xx',
-          '2xx',
-          '3xx',
-          'total',
-          'sent',
-          'average',
-          'mean',
-        ];
-
-        // For requests and throughput, higher is better (except stddev)
-        const isRequestsThroughputMetric =
-          (parentKey.toLowerCase() === 'requests' ||
-            parentKey.toLowerCase() === 'throughput') &&
-          metricName.toLowerCase() !== 'stddev';
-
-        const lowerKey = metricName.toLowerCase();
-        const isLowerBetter =
-          lowerIsBetter.some((key) => lowerKey === key) || isLatencyMetric;
-        const isHigherBetter =
-          higherIsBetter.some((key) => lowerKey === key) ||
-          isRequestsThroughputMetric;
-
-        if (isLowerBetter) {
-          return currVal < baseVal ? 'improved' : 'regressed';
-        } else if (isHigherBetter) {
-          return currVal > baseVal ? 'improved' : 'regressed';
-        }
-
-        // For unknown metrics, just indicate different
-        return 'neutral';
-      }
-
-      function renderMetadataComparison(baseline, current) {
-        const container = document.getElementById('metadata-comparison');
-
-        if (!baseline || !current) {
-          container.innerHTML = '<em>Missing metadata</em>';
-          return;
-        }
-
-        const metaKeys = ['serverMetadata', 'clientMetadata'];
-        let html = '';
-
-        metaKeys.forEach((metaType) => {
-          const baseData = baseline[metaType];
-          const currData = current[metaType];
-
-          if (!baseData && !currData) return;
-
-          html += `<h3>${metaType}</h3>`;
-          html += `<table class="comparison-table">`;
-          html += `<thead><tr>
-            <th>Field</th>
-            <th>Baseline</th>
-            <th>Current</th>
-            <th>Status</th>
-          </tr></thead><tbody>`;
-
-          // Get all unique keys from both baseline and current
-          const allKeys = new Set([
-            ...(baseData ? Object.keys(baseData) : []),
-            ...(currData ? Object.keys(currData) : []),
-          ]);
-
-          Array.from(allKeys)
-            .sort()
-            .forEach((key) => {
-              const baseVal = baseData?.[key];
-              const currVal = currData?.[key];
-              const isSame = valuesEqual(baseVal, currVal);
-
-              const baseFormatted = formatMetadataValue(baseVal);
-              const currFormatted = formatMetadataValue(currVal);
-
-              const rowClass = isSame ? 'row-same' : 'row-different';
-              const badgeClass = isSame ? 'badge-same' : 'badge-different';
-              const statusText = isSame ? 'Same' : 'Different';
-
-              html += `<tr class="${rowClass}">
-              <td><strong>${key}</strong></td>
-              <td class="value-cell">${baseFormatted}</td>
-              <td class="value-cell">${currFormatted}</td>
-              <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
-            </tr>`;
-            });
-
-          html += '</tbody></table>';
-        });
-
-        container.innerHTML = html;
-      }
-
-      function renderMetadata(data, elementId) {
-        const container = document.getElementById(elementId);
-        if (!data) {
-          container.innerHTML = '<em>No data</em>';
-          return;
-        }
-
-        const metaKeys = ['serverMetadata', 'clientMetadata'];
-        let html = '';
-
-        metaKeys.forEach((key) => {
-          if (data[key]) {
-            html += `<h4>${key}</h4><table class="meta-table">`;
-            for (const [k, v] of Object.entries(data[key])) {
-              const formattedValue = formatMetadataValue(v);
-              html += `<tr><td><strong>${k}</strong></td><td>${formattedValue}</td></tr>`;
-            }
-            html += '</table>';
-          }
-        });
-        container.innerHTML = html;
-      }
-
-      function formatValue(val) {
-        if (typeof val === 'number')
-          return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
-        return val;
-      }
-
-      function renderResultsComparison(baseline, current) {
-        const container = document.getElementById('results-comparison');
-
-        if (!baseline || !current) {
-          container.innerHTML = '<em>Missing results data</em>';
-          return;
-        }
-
-        const resultKeys = ['clientResults', 'serverResults'];
-        let html = '';
-
-        resultKeys.forEach((resultType) => {
-          const baseData = baseline[resultType];
-          const currData = current[resultType];
-
-          if (!baseData && !currData) return;
-
-          html += `<h3>${resultType}</h3>`;
-          html += `<table class="comparison-table">`;
-          html += `<thead><tr>
-            <th>Metric</th>
-            <th>Baseline</th>
-            <th>Current</th>
-            <th>Change</th>
-            <th>Status</th>
-          </tr></thead><tbody>`;
-
-          // Get all unique keys from both baseline and current
-          const allKeys = new Set([
-            ...(baseData ? Object.keys(baseData) : []),
-            ...(currData ? Object.keys(currData) : []),
-          ]);
-
-          // Sort and filter keys to skip large nested objects
-          const skipKeys = [
-            'rawPerfData',
-            'flamegraph',
-            'lockfile',
-            'output',
-            'statusCodeStats',
-          ];
-
-          Array.from(allKeys)
-            .filter((key) => !skipKeys.includes(key))
-            .sort()
-            .forEach((key) => {
-              const baseVal = baseData?.[key];
-              const currVal = currData?.[key];
-
-              // Skip if both are objects (nested data)
-              if (
-                typeof baseVal === 'object' &&
-                baseVal !== null &&
-                !Array.isArray(baseVal) &&
-                typeof currVal === 'object' &&
-                currVal !== null &&
-                !Array.isArray(currVal)
-              ) {
-                // Handle nested objects like latency, requests, throughput
-                if (baseVal && currVal) {
-                  html += `<tr class="row-same" style="background-color: #e8f4f8;"><td colspan="5"><strong>${key}</strong></td></tr>`;
-
-                  const nestedKeys = new Set([
-                    ...Object.keys(baseVal),
-                    ...Object.keys(currVal),
-                  ]);
-
-                  // Skip totalCount for latency metrics
-                  const skipNestedKeys =
-                    key.toLowerCase() === 'latency' ? ['totalCount'] : [];
-
-                  Array.from(nestedKeys)
-                    .filter((nKey) => !skipNestedKeys.includes(nKey))
-                    .sort()
-                    .forEach((nestedKey) => {
-                      const bVal = baseVal[nestedKey];
-                      const cVal = currVal[nestedKey];
-
-                      if (
-                        typeof bVal === 'number' &&
-                        typeof cVal === 'number'
-                      ) {
-                        const evaluation = evaluateChange(
-                          nestedKey,
-                          bVal,
-                          cVal,
-                          key
-                        );
-                        const diff =
-                          bVal !== 0 ? ((cVal - bVal) / bVal) * 100 : 0;
-                        const diffDisplay =
-                          diff !== 0
-                            ? `${diff > 0 ? '+' : ''}${diff.toFixed(2)}%`
-                            : '0%';
-                        const diffClass =
-                          diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : '';
-
-                        let rowClass = '';
-                        let badgeClass = 'badge-same';
-                        let statusText = 'Same';
-
-                        if (evaluation === 'improved') {
-                          rowClass = 'row-improved';
-                          badgeClass = 'badge-improved';
-                          statusText = '✓ Improved';
-                        } else if (evaluation === 'regressed') {
-                          rowClass = 'row-regressed';
-                          badgeClass = 'badge-regressed';
-                          statusText = '✗ Regressed';
-                        } else if (evaluation === 'neutral') {
-                          rowClass = 'row-different';
-                          badgeClass = 'badge-different';
-                          statusText = 'Different';
-                        }
-
-                        html += `<tr class="${rowClass}">
-                        <td style="padding-left: 30px;">${nestedKey}</td>
-                        <td class="value-cell">${formatValue(bVal)}</td>
-                        <td class="value-cell">${formatValue(cVal)}</td>
-                        <td class="${diffClass}">${diffDisplay}</td>
-                        <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
-                      </tr>`;
-                      }
-                    });
-                }
-                return;
-              }
-
-              const isSame = valuesEqual(baseVal, currVal);
-              const baseFormatted = formatMetadataValue(baseVal);
-              const currFormatted = formatMetadataValue(currVal);
-
-              // Calculate percentage change for numbers
-              let changeDisplay = '-';
-              let diffClass = '';
-              if (typeof baseVal === 'number' && typeof currVal === 'number') {
-                const diff =
-                  baseVal !== 0 ? ((currVal - baseVal) / baseVal) * 100 : 0;
-                changeDisplay = `${diff > 0 ? '+' : ''}${diff.toFixed(2)}%`;
-                diffClass = diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : '';
-              }
-
-              const evaluation = evaluateChange(key, baseVal, currVal);
-              let rowClass = 'row-same';
-              let badgeClass = 'badge-same';
-              let statusText = 'Same';
-
-              if (evaluation === 'improved') {
-                rowClass = 'row-improved';
-                badgeClass = 'badge-improved';
-                statusText = '✓ Improved';
-              } else if (evaluation === 'regressed') {
-                rowClass = 'row-regressed';
-                badgeClass = 'badge-regressed';
-                statusText = '✗ Regressed';
-              } else if (evaluation === 'neutral') {
-                rowClass = 'row-different';
-                badgeClass = 'badge-different';
-                statusText = 'Different';
-              }
-
-              html += `<tr class="${rowClass}">
-                <td><strong>${key}</strong></td>
-                <td class="value-cell">${baseFormatted}</td>
-                <td class="value-cell">${currFormatted}</td>
-                <td class="${diffClass}">${changeDisplay}</td>
-                <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
-              </tr>`;
-            });
-
-          html += '</tbody></table>';
-        });
-
-        container.innerHTML = html;
-      }
-
-      function renderComparison(baseline, current) {
-        renderMetadataComparison(baseline, current);
-        renderResultsComparison(baseline, current);
-        renderFlamegraphs(baseline, current);
-      }
-
-      // Store flamegraph data globally for fullscreen access
-      let flamegraphData = {
-        baseline: null,
-        current: null,
-      };
-
-      // Store iframe references for resize handling
-      let flamegraphIframes = [];
-
-      function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-          const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-        };
-      }
-
-      function adjustIframeHeight(iframe) {
-        try {
-          const iframeDoc =
-            iframe.contentDocument || iframe.contentWindow.document;
-          const svg = iframeDoc.querySelector('svg');
-          if (svg) {
-            // Reset iframe height first to allow content to shrink
-            iframe.style.height = 'auto';
-
-            // Force SVG to recalculate dimensions
-            svg.style.width = '100%';
-            svg.style.height = 'auto';
-
-            // Trigger reflow
-            void svg.offsetHeight;
-          }
-
-          setTimeout(() => {
-            // Get the actual rendered height
-            const body = iframeDoc.body;
-            const html = iframeDoc.documentElement;
-            const contentHeight = Math.max(
-              body.scrollHeight,
-              body.offsetHeight,
-              html.clientHeight,
-              html.scrollHeight,
-              html.offsetHeight
-            );
-            iframe.style.height = contentHeight + 'px';
-          }, 150);
-        } catch (e) {
-          console.error('Error adjusting iframe height:', e);
-        }
-      }
-
-      function handleResize() {
-        flamegraphIframes.forEach((iframe) => {
-          if (iframe && iframe.parentNode) {
-            adjustIframeHeight(iframe);
-          }
-        });
-      }
-
-      const debouncedResize = debounce(handleResize, 250);
-
-      window.addEventListener('resize', debouncedResize);
-
-      function injectFlamegraphHTML(container, html) {
-        // Create a wrapper div with a unique scope
-        const wrapper = document.createElement('div');
-        wrapper.style.width = '100%';
-        wrapper.style.height = '100%';
-
-        // Use srcdoc pattern with iframe for proper isolation
-        const iframe = document.createElement('iframe');
-        iframe.style.width = '100%';
-        iframe.style.height = '600px';
-        iframe.style.border = 'none';
-        iframe.sandbox = 'allow-scripts allow-same-origin';
-
-        container.innerHTML = '';
-        container.appendChild(iframe);
-
-        // Store iframe reference
-        flamegraphIframes.push(iframe);
-
-        // Write content to iframe
-        const iframeDoc =
-          iframe.contentDocument || iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(html);
-        iframeDoc.close();
-
-        // Apply SVG styles and adjust iframe height
-        setTimeout(() => {
-          try {
-            const svg = iframeDoc.querySelector('svg');
-            if (svg) {
-              svg.style.width = '100%';
-              svg.style.height = 'auto';
-
-              // Adjust iframe height to match content
-              setTimeout(() => {
-                adjustIframeHeight(iframe);
-              }, 100);
-            }
-          } catch (e) {
-            console.error('Error styling SVG:', e);
-          }
-        }, 0);
-      }
-
-      function renderFlamegraphs(baseline, current) {
-        const baselineContainer = document.getElementById(
-          'baseline-flamegraph'
-        );
-        const currentContainer = document.getElementById('current-flamegraph');
-
-        const baselineFlamegraph = baseline?.serverResults?.flamegraph;
-        const currentFlamegraph = current?.serverResults?.flamegraph;
-
-        // Store for fullscreen mode
-        flamegraphData.baseline = baselineFlamegraph;
-        flamegraphData.current = currentFlamegraph;
-
-        if (baselineFlamegraph) {
-          injectFlamegraphHTML(baselineContainer, baselineFlamegraph);
-        } else {
-          baselineContainer.innerHTML =
-            '<em style="padding: 20px; display: block;">No flamegraph data</em>';
-        }
-
-        if (currentFlamegraph) {
-          injectFlamegraphHTML(currentContainer, currentFlamegraph);
-        } else {
-          currentContainer.innerHTML =
-            '<em style="padding: 20px; display: block;">No flamegraph data</em>';
-        }
-      }
-
-      async function init(params) {
-        try {
-          const baselineJson = await fetch('baseline.json').then((res) =>
-            res.text()
-          );
-          const currentJson = await fetch('current.json').then((res) => res.text());
-
-          const baseline = JSON.parse(baselineJson);
-          const current = JSON.parse(currentJson);
-
-          if (baseline && current) {
-            renderComparison(baseline, current);
-          }
-        } catch (e) {
-          console.error('Error rendering dashboard:', e);
-        }
-      }
-
-      init();
-    </script>
-  </body>
+      return `<td class="${isBest ? 'better' : 'val'}">${col.fmt(v)}${deltaStr}</td>`;
+    }).join('');
+    return `<tr><td>${col.label}</td>${cells}</tr>`;
+  }).join('');
+
+  const headers = labels.map((l, i) =>
+    `<th><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[i]};margin-right:6px;vertical-align:middle"></span>${l}</th>`
+  ).join('');
+
+  return `<table>
+    <thead><tr><th>metric</th>${headers}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function loadFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        data._filename = file.name.replace(/\.json$/, '');
+        resolve(data);
+      } catch { reject(new Error('Invalid JSON: ' + file.name)); }
+    };
+    reader.onerror = () => reject(new Error('Could not read: ' + file.name));
+    reader.readAsText(file);
+  });
+}
+
+function updatePills() {
+  const el = document.getElementById('filePills');
+  el.innerHTML = runs.map((r, i) => {
+    const ov = r.options?.overrides?.express || '—';
+    const isBase = i === baseIdx;
+    return `<div class="pill">
+      <span class="pill-dot" style="background:${colorFor(i)}"></span>
+      <span class="pill-name">${r._filename}</span>
+      <span class="pill-override">${ov}</span>
+      ${isBase
+        ? '<span class="badge-base">base</span>'
+        : `<button class="pill-setbase" data-idx="${i}" title="Set as base">set base</button>`}
+      <button class="pill-remove" data-idx="${i}" title="Remove">&#x2715;</button>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.pill-setbase').forEach(btn => {
+    btn.addEventListener('click', () => {
+      baseIdx = +btn.dataset.idx;
+      updatePills();
+      render();
+    });
+  });
+
+  el.querySelectorAll('.pill-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      runs.splice(idx, 1);
+      if (baseIdx >= runs.length) baseIdx = 0;
+      else if (idx < baseIdx) baseIdx--;
+      updatePills();
+      render();
+    });
+  });
+}
+
+async function handleFiles(files) {
+  const fileArr = Array.from(files);
+  const loaded = await Promise.all(fileArr.map(loadFile));
+  runs.push(...loaded);
+  updatePills();
+  render();
+}
+
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+
+fi.addEventListener('change', () => { if (fi.files.length) handleFiles(fi.files); fi.value = ''; });
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
 </html>
